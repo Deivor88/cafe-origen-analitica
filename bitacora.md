@@ -38,3 +38,90 @@ Campo derivado (no viene en los datos): **valor de la venta = cantidad × precio
 | 6 | Espacios sobrantes en textos | No aparece en la muestra, pero es común al exportar | `"Bogotá"` y `"Bogotá "` serían ciudades distintas. | `trim()` y colapsar espacios internos antes de comparar. (El error reportado en el MiniReto 4 confirma este riesgo.) |
 
 ---
+## MiniReto 2 · Los números del día: recorrer, filtrar y acumular
+
+### Plan en pseudocódigo
+
+Función auxiliar de normalización usada en las comparaciones:
+
+```
+normalizar(texto)
+  quitar espacios al inicio y al final; dejar un solo espacio entre palabras
+  pasar a minúsculas; quitar tildes
+```
+
+```
+valorVenta(venta)
+  RETORNAR venta.cantidad × venta.precio      (si falta un número, usar 0)
+
+totalVendido(ventas)                           patrón ACUMULADOR
+  total ← 0
+  PARA CADA venta EN ventas
+    total ← total + valorVenta(venta)
+  RETORNAR total
+
+unidadesVendidas(ventas)                       patrón ACUMULADOR
+  unidades ← 0
+  PARA CADA venta EN ventas
+    unidades ← unidades + venta.cantidad
+  RETORNAR unidades
+
+ventaMayor(ventas)                             patrón MÁXIMO
+  mayor ← null                                 (todavía no hay candidata)
+  PARA CADA venta EN ventas
+    SI venta.cantidad <= 0 → pasar a la siguiente
+    SI mayor es null O valorVenta(venta) > valorVenta(mayor)
+      mayor ← venta                            (se guarda el registro completo)
+  RETORNAR mayor
+
+ticketPromedio(ventas)                         ACUMULADOR + CONTADOR
+  total ← 0 ; validas ← 0
+  PARA CADA venta EN ventas
+    SI venta.cantidad > 0
+      total ← total + valorVenta(venta)
+      validas ← validas + 1
+  SI validas = 0 → RETORNAR 0                  (evita 0 / 0 = NaN)
+  RETORNAR total / validas
+
+ventasPorCiudad(ventas, ciudad)                ACUMULADOR con condición
+  buscada ← normalizar(ciudad)
+  SI buscada está vacía → RETORNAR 0
+  total ← 0
+  PARA CADA venta EN ventas
+    SI normalizar(venta.ciudad) = buscada
+      total ← total + valorVenta(venta)
+  RETORNAR total
+```
+
+| Función | Qué recorre | Condición | Qué acumula | Valor inicial |
+|---|---|---|---|---|
+| `totalVendido` | todas las ventas | ninguna | valor de cada venta | `0` |
+| `unidadesVendidas` | todas las ventas | ninguna | cantidad de cada venta | `0` |
+| `ventaMayor` | todas las ventas | cantidad > 0 y valor mayor que el actual | el registro de mayor valor | `null` |
+| `ticketPromedio` | todas las ventas | cantidad > 0 | valor total y número de ventas válidas | `0` y `0` |
+| `ventasPorCiudad` | todas las ventas | ciudad normalizada = ciudad buscada | valor de cada venta que cumple | `0` |
+
+### Comportamiento con el arreglo vacío (decisión documentada)
+
+| Función | Con `[]` devuelve | Por qué |
+|---|---|---|
+| `totalVendido` | `0` | No se vendió nada. |
+| `unidadesVendidas` | `0` | No salió ninguna unidad. |
+| `ventaMayor` | `null` | No hay ningún registro que devolver; inventar uno sería falso. Quien la use debe revisar si es `null`. También devuelve `null` si todas las ventas tienen cantidad 0. |
+| `ticketPromedio` | `0` | Dividir entre 0 ventas da `NaN`. Se decide que `0` significa "sin ventas válidas". |
+| `ventasPorCiudad` | `0` | No hay ventas en ninguna ciudad. Una ciudad vacía también devuelve `0`. |
+| `valorVenta(undefined)` | `0` | Un registro ausente no aporta valor. |
+
+En empate de la venta mayor gana la primera encontrada (se usa `>` y no `>=`).
+
+### Pruebas con tres entradas
+
+Se ejecutan con `node src/pruebas.js` (incluye 17 comprobaciones automáticas). Como arreglo de un elemento se usa `[ventas[0]]`.
+
+| Función | Completo (12) | Un elemento | Vacío |
+|---|---|---|---|
+| `totalVendido` | 985.000 | 84.000 | 0 |
+| `unidadesVendidas` | 21 | 2 | 0 |
+| `ventaMayor` | id 10 (168.000) | id 1 (84.000) | `null` |
+| `ticketPromedio` | 89.545,45 | 84.000 | 0 |
+| `ventasPorCiudad(…, "Medellín")` | 356.000 | 84.000 | 0 |
