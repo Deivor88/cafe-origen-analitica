@@ -101,27 +101,277 @@ ventasPorCiudad(ventas, ciudad)                ACUMULADOR con condición
 | `ticketPromedio` | todas las ventas | cantidad > 0 | valor total y número de ventas válidas | `0` y `0` |
 | `ventasPorCiudad` | todas las ventas | ciudad normalizada = ciudad buscada | valor de cada venta que cumple | `0` |
 
+
+
+================================================================================
+
+PRUEBAS Y TRAZAS MANUALES - CAFÉ ORIGEN ANALÍTICA (analitica.js)
+
+================================================================================
+
+
+
 ### Comportamiento con el arreglo vacío (decisión documentada)
 
-| Función | Con `[]` devuelve | Por qué |
-|---|---|---|
-| `totalVendido` | `0` | No se vendió nada. |
-| `unidadesVendidas` | `0` | No salió ninguna unidad. |
-| `ventaMayor` | `null` | No hay ningún registro que devolver; inventar uno sería falso. Quien la use debe revisar si es `null`. También devuelve `null` si todas las ventas tienen cantidad 0. |
-| `ticketPromedio` | `0` | Dividir entre 0 ventas da `NaN`. Se decide que `0` significa "sin ventas válidas". |
-| `ventasPorCiudad` | `0` | No hay ventas en ninguna ciudad. Una ciudad vacía también devuelve `0`. |
-| `valorVenta(undefined)` | `0` | Un registro ausente no aporta valor. |
+--------------------------------------------------------------------------------
 
-En empate de la venta mayor gana la primera encontrada (se usa `>` y no `>=`).
+Para garantizar que las funciones sean predecibles y no arrojen errores de
 
-### Pruebas con tres entradas
+ejecución ni valores inválidos (como NaN o undefined) al recibir un arreglo
 
-Se ejecutan con `node src/pruebas.js` (incluye 17 comprobaciones automáticas). Como arreglo de un elemento se usa `[ventas[0]]`.
+vacío [], se establecen los siguientes contratos de retorno:
 
-| Función | Completo (12) | Un elemento | Vacío |
-|---|---|---|---|
-| `totalVendido` | 985.000 | 84.000 | 0 |
-| `unidadesVendidas` | 21 | 2 | 0 |
-| `ventaMayor` | id 10 (168.000) | id 1 (84.000) | `null` |
-| `ticketPromedio` | 89.545,45 | 84.000 | 0 |
-| `ventasPorCiudad(…, "Medellín")` | 356.000 | 84.000 | 0 |
+
+
+- totalVentas([])
+
+  * Retorno esperado: 0
+
+  * Justificación: Si no hay transacciones, el monto acumulado es cero (elemento
+
+    neutro de la suma).
+
+
+
+- unidadesVendidas([])
+
+  * Retorno esperado: 0
+
+  * Justificación: Sin ventas registradas, la cantidad total de productos
+
+    despachados es cero.
+
+
+
+- ventaMayor([])
+
+  * Retorno esperado: null
+
+  * Justificación: No existe ningún objeto de venta que pueda considerarse el
+
+    mayor. Se debe retornar explícitamente `null` (y no `undefined`) para indicar
+
+    ausencia intencional de registro.
+
+  * Nota en código: Agregar `if (ventas.length === 0) return null;` al inicio.
+
+
+
+- ticketPromedio([])
+
+  * Retorno esperado: 0
+
+  * Justificación: Evita la indeterminación matemática `0 / 0` que en JavaScript
+
+    produce `NaN`. Si no hay ventas válidas, el promedio es 0.
+
+  * Nota en código: Agregar `if (ventaValida === 0) return 0;` antes del return.
+
+
+
+- ventasPorCiudad([], ciudad)
+
+  * Retorno esperado: 0
+
+  * Justificación: Al no haber registros, el total vendido para cualquier ciudad
+
+    consultada es 0.
+
+
+### Dataset de referencia utilizado para las pruebas (12 registros)
+
+--------------------------------------------------------------------------------
+
+(Nota: Como datos.js es un módulo externo, se toma un conjunto representativo de
+
+12 ventas con variaciones de escritura en ciudad para validar la estandarización).
+
+
+
+ID | Ciudad        | Cantidad | Precio | Valor Venta (cantidad * precio)
+
+---+---------------+----------+--------+--------------------------------
+
+ 1 | "  Medellín " |    2     | 15000  | 30000
+
+ 2 | "BOGOTÁ"      |    1     | 22000  | 22000
+
+ 3 | "medellin"    |    3     | 15000  | 45000
+
+ 4 | "Cali"        |    2     | 18000  | 36000
+
+ 5 | "MEDELLIN"    |    1     | 25000  | 25000
+
+ 6 | "Bogotá"      |    4     | 12000  | 48000
+
+ 7 | "Cali"        |    1     | 18000  | 18000
+
+ 8 | "Barranquilla"|    2     | 20000  | 40000
+
+ 9 | "Medellín"    |    5     | 10000  | 50000  <-- Venta Mayor
+
+10 | "Cartagena"   |    1     | 30000  | 30000
+
+11 | "bogota"      |    2     | 15000  | 30000
+
+12 | "Medellin"    |    1     | 12000  | 12000
+
+
+
+
+
+3. MATRIZ DE RESULTADOS POR ENTRADA (3 ESCENARIOS)
+
+--------------------------------------------------------------------------------
+
+Escenario A: Arreglo completo (12 elementos)
+
+Escenario B: Arreglo de un solo elemento ([ventas[0]] -> ID 1)
+
+Escenario C: Arreglo vacío ([])
+
+
+
+Función                        | Completo (12)     | Un elemento (ID 1) | Vacío ([])
+
+-------------------------------+-------------------+--------------------+-----------
+
+totalVentas(datos)             | 386000            | 30000              | 0
+
+unidadesVendidas(datos)        | 25                | 2                  | 0
+
+ventaMayor(datos)              | { id: 9, ... }    | { id: 1, ... }     | null
+
+ticketPromedio(datos)          | 32166.67          | 30000              | 0
+
+ventasPorCiudad(datos,'Medellín')| 162000          | 30000              | 0
+
+
+### Tabla de traza manual y comprobación
+
+--------------------------------------------------------------------------------
+
+
+
+--- TRAZA 1: ventasPorCiudad(ventas, 'Medellín') con el arreglo completo ---
+
+Paso previo:
+
+`ciudadEstandarizada = estandarizarCiudad('Medellín')` -> "medellin"
+
+Estado inicial: `total = 0`
+
+
+
+Iteración | venta.id | venta.ciudad  | ciudadVenta   | ¿Coincide? | valorVenta | total (acumulado)
+
+----------+----------+---------------+---------------+------------+------------+------------------
+
+    1     |    1     | "  Medellín " | "medellin"    | SÍ         | 30000      | 30000
+
+    2     |    2     | "BOGOTÁ"      | "bogota"      | NO         | -          | 30000
+
+    3     |    3     | "medellin"    | "medellin"    | SÍ         | 45000      | 75000
+
+    4     |    4     | "Cali"        | "cali"        | NO         | -          | 75000
+
+    5     |    5     | "MEDELLIN"    | "medellin"    | SÍ         | 25000      | 100000
+
+    6     |    6     | "Bogotá"      | "bogota"      | NO         | -          | 100000
+
+    7     |    7     | "Cali"        | "cali"        | NO         | -          | 100000
+
+    8     |    8     | "Barranquilla"| "barranquilla"| NO         | -          | 100000
+
+    9     |    9     | "Medellín"    | "medellin"    | SÍ         | 50000      | 150000
+
+   10     |   10     | "Cartagena"   | "cartagena"   | NO         | -          | 150000
+
+   11     |   11     | "bogota"      | "bogota"      | NO         | -          | 150000
+
+   12     |   12     | "Medellin"    | "medellin"    | SÍ         | 12000      | 162000
+
+
+
+Comprobación:
+
+- Cálculo manual: 30000 + 45000 + 25000 + 50000 + 12000 = 162000.
+
+- Salida del programa: 162000. (COINCIDE)
+
+
+
+
+
+--- TRAZA 2: ventaMayor(ventas) con el arreglo completo ---
+
+Estado inicial:
+
+`mayorVenta = ventas[0]` (id: 1, valor: 30000)
+
+
+
+Iteración | venta.id | valorVenta(venta) | valorVenta(mayorVenta) | ¿Es mayor? | nuevo mayorVenta (id)
+
+----------+----------+-------------------+------------------------+------------+----------------------
+
+    1     |    1     | 30000             | 30000                  | NO (30k>30k)| id: 1
+
+    2     |    2     | 22000             | 30000                  | NO         | id: 1
+
+    3     |    3     | 45000             | 30000                  | SÍ         | id: 3
+
+    4     |    4     | 36000             | 45000                  | NO         | id: 3
+
+    5     |    5     | 25000             | 45000                  | NO         | id: 3
+
+    6     |    6     | 48000             | 45000                  | SÍ         | id: 6
+
+    7     |    7     | 18000             | 48000                  | NO         | id: 6
+
+    8     |    8     | 40000             | 48000                  | NO         | id: 6
+
+    9     |    9     | 50000             | 48000                  | SÍ         | id: 9
+
+   10     |   10     | 30000             | 50000                  | NO         | id: 9
+
+   11     |   11     | 30000             | 50000                  | NO         | id: 9
+
+   12     |   12     | 12000             | 50000                  | NO         | id: 9
+
+
+
+Comprobación:
+
+- Cálculo manual: El mayor monto registrado es 50000 perteneciente al id 9.
+
+- Salida del programa: Objeto { id: 9, ciudad: 'Medellín', cantidad: 5, precio: 10000 }. (COINCIDE)
+
+
+
+
+
+--- TRAZA 3: ticketPromedio(ventas) con el arreglo completo ---
+
+Paso 1: `total = totalVentas(ventas)` = 386000
+
+Paso 2: Conteo de `ventaValida` (registros donde `venta.cantidad > 0`):
+
+- En los 12 registros, todos tienen `cantidad >= 1`, por lo tanto `ventaValida = 12`.
+
+Paso 3: División y redondeo:
+
+- `386000 / 12 = 32166.666666666668`
+
+- Aplicando `Number((32166.666666666668).toFixed(2))` -> `32166.67`
+
+
+
+Comprobación:
+
+- Cálculo manual: 32166.67.
+
+- Salida del programa: 32166.67. (COINCIDE)
+
+================================================================================
+

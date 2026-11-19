@@ -21,6 +21,7 @@ function unidadesVendidas(ventas) {
 }   
 
 function ventaMayor(ventas) {
+    if (ventas.length === 0) {return null;}
     let mayorVenta = ventas[0];
     for (const venta of ventas) {
         if (valorVenta(venta) > valorVenta(mayorVenta)) {
@@ -38,57 +39,72 @@ function ticketPromedio(ventas) {
             ventaValida++;
         }                           
     }
+
+    if (ventaValida === 0) {return 0;}
     return total / ventaValida;
 }
 
-//Preguntar a Jorge sobre la estandarizacion de texto
-function limpiarTexto(texto) {
-  if (typeof texto !== 'string') return '';
-  return texto.normalize('NFC').trim().replace(/\s+/g, ' ');
-}
-
-function claveTexto(texto) {
-  return limpiarTexto(texto)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
-function tieneTildes(texto) {
-  return /[\u0300-\u036f]/.test(limpiarTexto(texto).normalize('NFD'));
-}
-
-//Preguntar a Jorge sobre la funcipn formatearNombreLugar, si es necesario que se haga la estandarizacion de texto en el nombre de la ciudad, ya que en el archivo datos.js hay ciudades con tildes y sin tildes, y esto puede afectar el resultado de la funcion.
-function formatearNombreLugar(texto) {
-  const conectores = ['de', 'del', 'la', 'las', 'los', 'y', 'e'];
-  const limpio = limpiarTexto(texto).toLowerCase();
-  if (limpio === '') return '';
-
-  const palabras = [];
-  let posicion = 0;
-  for (const palabra of limpio.split(' ')) {
-    const esConector = posicion > 0 && conectores.includes(palabra);
-    palabras.push(esConector ? palabra : palabra.charAt(0).toUpperCase() + palabra.slice(1));
-    posicion++;
-  }
-  return palabras.join(' ');
-}
-
-//Preguntar a Jorge sobre la funion ventasPorCiudad, si es necesario que se haga la estandarizacion de texto en el nombre de la ciudad, ya que en el archivo datos.js hay ciudades con tildes y sin tildes, y esto puede afectar el resultado de la funcion.
-function ventasPorCiudad(ventas, ciudad) {
-  const resumen = {};
-    for (const venta of ventas) {
-        const ciudadVenta = formatearNombreLugar(venta.ciudad);
-        if (!resumen[ciudadVenta]) {
-            resumen[ciudadVenta] = {
-                totalVentas: 0,
-                totalUnidades: 0,
-            };
-        }
-        resumen[ciudadVenta].totalVentas += valorVenta(venta);
-        resumen[ciudadVenta].totalUnidades += venta.cantidad;
+function estandarizarCiudad(texto, {comoSlug = false} = {}) {
+    let ciudad = String(texto)
+    .normalize('NFD') //Descompone acentos
+    .trim() //Quita espacios al inicio y final
+    .toLowerCase() //Pasa a minúsculas
+    .replace(/[\u0300-\u036f]/g, "") // Elimina tildes (Medellín -> Medellin)
+    .replace(/\s+/g, " "); // Colapsa espacios múltiples internos
+    if (comoSlug) {
+        ciudad = ciudad
+            .replace(/[^a-z0-9\s-]/g, "") // Limpia caracteres raros
+            .replace(/\s+/g, "-")        // Reemplaza espacios por guiones
+            .replace(/-+/g, "-");        // Evita guiones múltiples
     }
-    return resumen[formatearNombreLugar(ciudad)] || { totalVentas: 0, totalUnidades: 0 };
+    return ciudad;
 }
+
+function ventasPorCiudad(ventas, ciudad) {
+    const ciudadEstandarizada = estandarizarCiudad(ciudad);
+    let total = 0;
+    for (const venta of ventas) {
+        const ciudadVenta = estandarizarCiudad(venta.ciudad);
+        if (ciudadVenta === ciudadEstandarizada) {
+            total += valorVenta(venta);
+        }
+    }
+    return total;
+}
+
+//Pruebas:
+
+const casos = [
+    { nombre: 'Completo (12)', datos: ventas }, // 12 ventas
+    { nombre: 'Un elemento', datos: [ventas[0]] }, // 1 venta
+    { nombre: 'Vacío', datos: [] }, // 0 ventas
+];
+
+
+console.log('=== Resultados por entrada ===');
+const filas = [];
+for (const caso of casos) {
+    filas.push({
+        entrada: caso.nombre,
+        totalVendido: totalVentas(caso.datos),
+        unidadesVendidas: unidadesVendidas(caso.datos),
+        ventaMayor: ventaMayor(caso.datos),
+        ticketPromedio: Number(ticketPromedio(caso.datos).toFixed(2)),
+        'ventasPorCiudad(Medellín)': ventasPorCiudad(caso.datos, 'Medellín'),
+    });
+}
+console.table(filas);
+
+
+module.exports = {
+    valorVenta,
+    totalVentas,
+    unidadesVendidas,
+    ventaMayor,
+    ticketPromedio,
+    ventasPorCiudad,
+};
+
+
 
 
