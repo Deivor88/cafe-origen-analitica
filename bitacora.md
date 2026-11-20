@@ -373,5 +373,29 @@ Comprobación:
 
 - Salida del programa: 32166.67. (COINCIDE)
 
+## MiniReto 3 · Del ciclo al método: rankings y agrupaciones
+### Equivalencia Ciclo <=> Metodo
+
+`node src/verificar.js` compara cada par con tres conjuntos de datos (completo, un elemento y vacío) y siete búsquedas de ciudad (`"Medellín"`, `"  medellín "`, `"BOGOTÁ"`, `"Cali"`, `"Pereira"`, `"Cartagena"` y `""`). Resultado: **27/27 pares en OK** y 8/8 criterios adicionales en OK.
+
+Por qué dan exactamente lo mismo:
+
+- Las dos versiones usan las mismas funciones auxiliares (`valorVenta`, `cantidadDe`, `claveTexto`), así que no hay dos fórmulas distintas que puedan divergir.
+- Todo `reduce` recibe valor inicial `0`. Sin valor inicial, `reduce` sobre `[]` lanza `TypeError` y sobre un arreglo de objetos sumaría objetos en lugar de números.
+- Las dos versiones de `ventasPorCiudad` devuelven `0` ante una ciudad vacía antes de recorrer.
+
+### Las cinco preguntas por función
+
+| Función | ¿Qué recorro? | ¿Qué filtro? | ¿Qué transformo? | ¿Qué acumulo? | ¿Cómo agrupo? |
+|---------|---------------|--------------|------------------|---------------|---------------|
+| `totalVendidoM` | `ventas` | nada | cada venta en su valor | suma de valores (`reduce`, inicio 0) | no agrupa |
+| `unidadesVendidasM` |  `ventas` | nada | cada venta en su cantidad | suma de unidades (`reduce`, inicio 0) | no agrupa |
+| `ventasPorCiudadM` | `ventas` | ciudad normalizada = buscada (`filter`) | cada venta en su valor | suma de valores (`reduce`, inicio 0) |no agrupa: es una sola ciudad |
+| `totalPorCiudad` | `ventas` | nada (ciudad vacía va a "Sin ciudad") | ciudad en clave normalizada y nombre formateado; venta en valor | total por ciudad | objeto diccionario con clave = ciudad normalizada |
+| `unidadesPorProducto` | `ventas` | nada | producto en clave normalizada; venta en cantidad | unidades por producto | objeto diccionario con clave = producto normalizado |
+| `topProductosPorValor` | `ventas` y luego las entradas del diccionario (`Object.entries`) | nada; `slice(0, k)` se queda con los k primeros | cada grupo en `{ producto, unidades, valor }` | valor por producto | por producto; después ordena de mayor a menor (`sort` con función de comparación) |
+| `ventasOrdenadasPorValor` | `ventas` | nada | nada | nada | no agrupa: solo ordena la copia |
+
+
 ================================================================================
 

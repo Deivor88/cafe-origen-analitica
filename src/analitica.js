@@ -12,6 +12,11 @@ function totalVentas(ventas) {
     return total;
 }
 
+function totalVendidoM(ventas){
+    return ventas.reduce((total, venta) => total + valorVenta(venta), 0);
+}
+console.log("Ventas totales M: ",totalVendidoM(ventas))
+
 function unidadesVendidas(ventas) {
     let totalUnidades = 0;
     for (const venta of ventas) {
@@ -19,6 +24,12 @@ function unidadesVendidas(ventas) {
     }
     return totalUnidades;
 }   
+
+//console.log(unidadesVendidas(ventas))
+
+function unidadesVendidasM(ventas){
+    return ventas.reduce((totalVentas, venta) => totalVentas + venta.cantidad, 0);
+}
 
 function ventaMayor(ventas) {
     if (ventas.length === 0) {return null;}
@@ -44,27 +55,27 @@ function ticketPromedio(ventas) {
     return total / ventaValida;
 }
 
-function estandarizarCiudad(texto, {comoSlug = false} = {}) {
-    let ciudad = String(texto)
+function normalizarTexto(texto, {comoSlug = false} = {}) {
+    let palabra = String(texto)
     .normalize('NFD') //Descompone acentos
     .trim() //Quita espacios al inicio y final
     .toLowerCase() //Pasa a minúsculas
     .replace(/[\u0300-\u036f]/g, "") // Elimina tildes (Medellín -> Medellin)
     .replace(/\s+/g, " "); // Colapsa espacios múltiples internos
     if (comoSlug) {
-        ciudad = ciudad
+        palabra = palabra
             .replace(/[^a-z0-9\s-]/g, "") // Limpia caracteres raros
             .replace(/\s+/g, "-")        // Reemplaza espacios por guiones
             .replace(/-+/g, "-");        // Evita guiones múltiples
     }
-    return ciudad;
+    return palabra;
 }
 
 function ventasPorCiudad(ventas, ciudad) {
-    const ciudadEstandarizada = estandarizarCiudad(ciudad);
+    const ciudadEstandarizada = normalizarTexto(ciudad);
     let total = 0;
     for (const venta of ventas) {
-        const ciudadVenta = estandarizarCiudad(venta.ciudad);
+        const ciudadVenta = normalizarTexto(venta.ciudad);
         if (ciudadVenta === ciudadEstandarizada) {
             total += valorVenta(venta);
         }
@@ -72,7 +83,80 @@ function ventasPorCiudad(ventas, ciudad) {
     return total;
 }
 
-//Pruebas:
+function ventasPorCiudadM(ventas, ciudad){
+    const ciudadEstandarizada = normalizarTexto(ciudad)
+    return ventas
+    .filter((venta) => normalizarTexto(venta.ciudad) === ciudadEstandarizada)
+    .reduce((total, venta) => total + valorVenta(venta),0)
+}
+
+function totalPorCiudad(ventas){
+    const totales = {}
+
+    for (const venta of ventas){
+        const ciudadClave = normalizarTexto(venta.ciudad)
+        if(!ciudadClave) continue  //Evita llaves vacias si le falta la ciudad
+        
+        //ciudadClave dentro de totales. Si no existe, la inicializa en cero
+        if(!totales[ciudadClave]){
+            totales[ciudadClave] = 0
+        }
+        totales[ciudadClave] += valorVenta(venta)
+    }
+    return totales
+}
+
+function unidadesPorProducto(ventas){
+    const unidades = {}
+
+    for(const venta of ventas){
+        const productoClave = normalizarTexto(venta.producto)
+
+        // Omite el registro si el nombre del producto está vacío o no existe
+        if(!productoClave) continue
+
+        // Inicializa el contador en 0 la primera vez que aparece el producto
+        if(!unidades[productoClave]){
+            unidades[productoClave] = 0
+        }
+        // Suma las unidades vendidas en esta iteración al total del producto
+        unidades[productoClave] += venta.cantidad
+    }
+    return unidades
+}
+
+function topProductosPorValor(ventas, k) {
+    // Evita procesar si ventas no es arreglo, está vacío o k no es positivo
+    if (!Array.isArray(ventas) || ventas.length === 0 || k <= 0) {
+        return [];
+    }
+    // Acumulador del dinero total generado por cada producto
+    const ingresosPorProducto = {};
+
+    for (const venta of ventas) {
+        // Limpia espacios externos; si no hay producto, usa cadena vacía
+        const producto = venta.producto ? venta.producto.trim() : '';
+        // Salta el registro si el nombre del producto quedó vacío
+        if (!producto) continue;
+        // Suma el valor de esta venta al acumulado del producto (iniciando en 0 si es nuevo)
+        ingresosPorProducto[producto] = (ingresosPorProducto[producto] || 0) + valorVenta(venta);
+    }
+    // Convierte el objeto en pares [producto, total], ordena de mayor a menor y toma los k primeros
+    return Object.entries(ingresosPorProducto)
+        .sort(([, totalA], [, totalB]) => totalB - totalA)
+        .slice(0, k);
+}
+
+
+
+console.log(totalPorCiudad(ventas))
+console.log(unidadesPorProducto(ventas))
+console.log(topProductosPorValor(ventas,ventas.length));
+
+
+
+
+//PRUEBAS:
 
 const casos = [
     { nombre: 'Completo (12)', datos: ventas }, // 12 ventas
@@ -80,8 +164,7 @@ const casos = [
     { nombre: 'Vacío', datos: [] }, // 0 ventas
 ];
 
-
-console.log('=== Resultados por entrada ===');
+// console.log('=== Resultados por entrada ===');
 const filas = [];
 for (const caso of casos) {
     filas.push({
@@ -93,16 +176,18 @@ for (const caso of casos) {
         'ventasPorCiudad(Medellín)': ventasPorCiudad(caso.datos, 'Medellín'),
     });
 }
-console.table(filas);
-
+// console.table(filas);
 
 module.exports = {
-    valorVenta,
-    totalVentas,
-    unidadesVendidas,
-    ventaMayor,
-    ticketPromedio,
-    ventasPorCiudad,
+  valorVenta,
+  totalVentas,
+  unidadesVendidas,
+  ventaMayor,
+  ticketPromedio,
+  ventasPorCiudad,
+  totalVendidoM,
+  unidadesVendidasM,
+  ventasPorCiudadM,
 };
 
 
