@@ -396,6 +396,59 @@ Por qué dan exactamente lo mismo:
 | `topProductosPorValor` | `ventas` y luego las entradas del diccionario (`Object.entries`) | nada; `slice(0, k)` se queda con los k primeros | cada grupo en `{ producto, unidades, valor }` | valor por producto | por producto; después ordena de mayor a menor (`sort` con función de comparación) |
 | `ventasOrdenadasPorValor` | `ventas` | nada | nada | nada | no agrupa: solo ordena la copia |
 
+## MiniReto 4 · Reporte v0.1 y errores reportados
+
+La gerente debe poder generar el reporte sin abrir el código. Se ejecuta desde
+la raíz del proyecto con `node src/reporte.js`; no se requieren paquetes
+adicionales. El reporte incluye el resumen, ventas por ciudad, unidades por
+producto, top 3 y consulta por fecha.
+
+La versión preliminar del compañero no está en este repositorio. Para reproducir
+los síntomas reportados se ejecutaron las operaciones defectuosas equivalentes
+con entradas controladas; después se probaron las funciones actuales del motor.
+
+### 1. Bogotá aparece en más de un grupo
+
+- **Síntoma:** Bogotá se muestra repetida en la agrupación por ciudad.
+- **Entrada que lo produce:** tres registros de prueba con `ciudad` igual a
+  `"Bogotá"`, `"bogota"` y `" BOGOTÁ "`, con valores de venta de $100, $200 y
+  $100.
+- **Hipótesis:** agrupar usando el texto de la ciudad sin normalizar crea una
+  clave diferente por cada variante de escritura.
+- **Prueba realizada:** la agrupación ingenua `grupos[venta.ciudad]` produjo
+  tres claves. La prueba de regresión con `totalPorCiudad` produjo una sola
+  clave (`bogota`) con total de $400.
+- **Causa reproducida:** agrupar directamente por el valor original de
+  `ciudad`, sin normalizarlo, conserva cada variante como clave distinta.
+- **Corrección:** `totalPorCiudad` aplica `normalizarTexto` (quita tildes,
+  espacios externos y diferencias de mayúsculas) antes de acumular. La prueba
+  de regresión está en `src/verificar.js`.
+
+### 2. Ticket promedio `NaN` en un día sin ventas
+
+- **Síntoma:** al calcular el ticket promedio de un día vacío se obtiene
+  `NaN`.
+- **Entrada que lo produce:** filtrar las ventas para `2026-08-01`, fecha sin
+  registros en los datos.
+- **Hipótesis:** la suma cero se divide por cero ventas: `0 / 0`.
+- **Prueba realizada:** el cálculo sin protección sobre el arreglo filtrado
+  devolvió `NaN`; `ticketPromedio` sobre el mismo arreglo devolvió `0`, que es el
+  resultado definido para no tener ventas válidas.
+- **Causa reproducida:** la fórmula sin protección divide la suma por la
+  cantidad de ventas sin comprobar que el denominador sea distinto de cero.
+- **Corrección:** `ticketPromedio` retorna `0` cuando no encuentra ventas
+  válidas. La prueba de regresión verifica tanto el `NaN` del cálculo sin
+  protección como el cero del motor.
+
+### Verificación del reporte completo
+
+Ejecutado `node src/reporte.js`: total vendido **$985.000**, 12 registros, 11
+ventas válidas y 21 unidades vendidas. La agrupación devuelve una clave por
+ciudad (`medellin`, `bogota`, `cali`, `pereira`). La prueba del día sin ventas
+confirma que `ticketPromedio` devuelve `0`, no un valor inválido. La salida
+completa fue inspeccionada para confirmar que no contiene `NaN`, `undefined` ni
+grupos de ciudad duplicados. Repetir las pruebas con los dos comandos indicados
+arriba.
 
 ================================================================================
 
