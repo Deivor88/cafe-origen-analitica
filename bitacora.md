@@ -450,5 +450,44 @@ completa fue inspeccionada para confirmar que no contiene `NaN`, `undefined` ni
 grupos de ciudad duplicados. Repetir las pruebas con los dos comandos indicados
 arriba.
 
+
+## MiniReto 5 · Prediccion de escalabilidad (n -> 10 * n)
+
+Pregunta: Si n se multiplica por 10, ¿cuánto se multiplica el número de
+operaciones de cada función?
+
+El número de operaciones de las tres funciones crece de forma lineal, es
+decir, O(n). Cuando n se multiplica por 10, el total de operaciones
+(visitas + comparaciones) también se multiplica aproximadamente por 10.
+
+Detalle por función (observado con n = 10 -> predicción para n = 100):
+
+1. totalVendidoInstrumentado:
+   - Con n = 10: visitas = 10, comparaciones = 0 (total = 10 operaciones).
+   - Patrón: 1 visita por elemento y 0 comparaciones.
+   - Si n se multiplica por 10 (n = 100): visitas ≈ 100, comparaciones = 0
+     (total ≈ 100 operaciones, se multiplica por 10).
+
+2. ventaMayorIntrumentado:
+   - Con n = 10: visitas = 10, comparaciones = 19 (total = 29 operaciones).
+   - Patrón: 1 visita por elemento; en el primer elemento hace 1 comparación
+     (mayor === null) y en los (n - 1) restantes hace 2 comparaciones
+     (mayor === null y subtotal > mayorSubtotal), es decir, (2 * n - 1)
+     comparaciones.
+   - Si n se multiplica por 10 (n = 100): visitas ≈ 100, comparaciones ≈ 199
+     (el factor de multiplicación tiende a 10x a medida que n crece).
+
+3. totalPorCiudadInstrumentado:
+   - Con n = 10: visitas = 10, comparaciones = 10 (total = 20 operaciones).
+   - Patrón: 1 visita y 1 comparación por cada venta (asumiendo acumulación
+     en objeto).
+   - Si n se multiplica por 10 (n = 100): visitas ≈ 100, comparaciones ≈ 100
+     (total ≈ 200 operaciones, se multiplica por 10).
+
+Nota sobre constantes vs. crecimiento:
+Aunque ventaMayor tiene más comparaciones por elemento que totalVendido o
+totalPorCiudad (una constante mayor), su tasa de crecimiento sigue siendo
+lineal O(n): al multiplicar n por 10, el trabajo escala ~10 veces.
+
 ================================================================================
 

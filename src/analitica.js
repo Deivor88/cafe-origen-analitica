@@ -1,4 +1,6 @@
 const { ventas } = require('./datos.js');
+const analitica = require('./generador.js')
+
 
 function valorVenta(venta) {
     return venta.cantidad * venta.precio;
@@ -166,17 +168,100 @@ function topProductosPorValor(ventas, k) {
         .slice(0, k);
 }
 
-function ventasDelDia(ventas, fecha) {    
+function ventasDelDia(ventas, fecha) {
     const nuevoArreglo = ventas.filter((venta) => venta.fecha === fecha);
 
     if (nuevoArreglo.length === 0) {
         return `No hubo ventas en la fecha ${fecha}`
 
-    }else{
+    } else {
         console.log("Ventas de la fecha: ", fecha);
         return nuevoArreglo
     }
 }
+
+//Total vendido instrumentado
+function totalVendidoIntrumentado(ventas, contador = { visitas: 0, comparaciones: 0 }) {
+    let total = 0
+    for (const venta of ventas) {
+        total += valorVenta(venta)
+        contador.visitas += 1
+    }
+    return total
+}
+
+//Venta mayor instrumentado
+function ventaMayorIntrumentado(ventas, contador = { visitas: 0, comparaciones: 0 }) {
+    let mayor = null
+
+    for (const venta of ventas) {
+        contador.visitas += 1
+
+        contador.comparaciones += 1
+        if (mayor === null) {
+            mayor = venta
+            continue
+        }
+
+        contador.comparaciones += 1;
+        if (valorVenta(venta) > valorVenta(mayor)) {
+            mayor = venta
+        }
+    }
+
+    return {id: mayor.id}
+}
+
+//Total por ciudad instrumentada
+function totalPorCiudadInstrumentado(ventas, contador = { visitas: 0, comparaciones: 0 }) {
+    const totales = {}
+
+    for (const venta of ventas) {
+        contador.visitas += 1
+
+        const ciudad = normalizarTexto(venta.ciudad)
+        const subtotal = valorVenta(venta)
+
+        // Si totales[ciudad] es undefined (aún no existe), usa 0
+        contador.comparaciones += 1
+        totales[ciudad] = (totales[ciudad] ?? 0) + subtotal
+    }
+
+    return totales
+}
+
+//Primera venta O(1)
+function primeraVentaInstrumentada (ventas, contador = {visitas: 0, comparaciones: 0}){
+    contador.comparaciones += 1
+    if (!Array.isArray(ventas) || ventas.length === 0) {
+        return null;
+    }
+
+    contador.visitas += 1
+    return ventas[0];
+}
+
+
+// const ventasPrueba = analitica.generarVentas(10)
+// //const ventasPrueba = ventas
+
+// const c1 = { visitas: 0, comparaciones: 0 };
+// const total = totalVendidoIntrumentado(ventasPrueba, c1);
+// console.log("totalVendido:", total, c1);
+
+// const c2 = { visitas: 0, comparaciones: 0 };
+// const mayor = ventaMayorIntrumentado(ventasPrueba, c2);
+// console.log("ventaMayor:", mayor, c2);
+
+// const c3 = { visitas: 0, comparaciones: 0 };
+// const porCiudad = totalPorCiudadInstrumentado(ventasPrueba, c3);
+// console.log("totalPorCiudad:", porCiudad, c3);
+
+
+
+
+
+
 
 
 //console.log(totalPorCiudad(ventas))
@@ -224,6 +309,10 @@ module.exports = {
     totalVendidoM,
     unidadesVendidasM,
     ventasPorCiudadM,
+    totalVendidoIntrumentado,
+    ventaMayorIntrumentado,
+    totalPorCiudadInstrumentado,
+    primeraVentaInstrumentada
 };
 
 
