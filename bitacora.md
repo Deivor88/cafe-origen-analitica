@@ -491,3 +491,185 @@ lineal O(n): al multiplicar n por 10, el trabajo escala ~10 veces.
 
 ================================================================================
 
+## MiniReto 6 · Clientes recurrentes: traza y tiempo de ejecución
+
+### Traza manual con 5 ventas
+
+Para hacer visible la búsqueda de clientes repetidos, se usa este arreglo:
+
+| Venta | Cliente |
+|---:|---|
+| 1 | A |
+| 2 | B |
+| 3 | A |
+| 4 | C |
+| 5 | B |
+
+La función compara cada venta con las que vienen después. Cuando encuentra dos
+ventas del mismo cliente, consulta si ese cliente ya está en `recurrentes`.
+
+| `i` | Cliente actual | `j` comparados | Coincidencias | `includes` y resultado |
+|---:|---|---|---|---|
+| 0 | A | B, A, C, B | A con A | `includes(A)` en `[]`: no encuentra; agrega A |
+| 1 | B | A, C, B | B con B | `includes(B)` en `[A]`: 1 comparación; agrega B |
+| 2 | A | C, B | Ninguna | No se consulta `includes` |
+| 3 | C | B | Ninguna | No se consulta `includes` |
+
+Hay **10 comparaciones entre pares de ventas**: 4 + 3 + 2 + 1. Además, en esta
+traza `includes` hace **1 comparación de cliente** (su primera búsqueda se hace
+en un arreglo vacío). En total son 11 comparaciones de valores, si se cuentan
+también las búsquedas de pertenencia. El resultado es `[A, B]`.
+
+Para n ventas, las comparaciones de pares son:
+
+`(n - 1) + (n - 2) + ... + 1 = n * (n - 1) / 2`.
+
+Por tanto, el ciclo doble por sí solo hace `n * (n - 1) / 2` comparaciones, lo
+que crece como **O(n²)**. Las comparaciones adicionales de `includes` dependen de
+los clientes y se analizan más abajo.
+
+### Medición de tiempo
+
+Se midió `clientesRecurrentes` con `console.time` y `console.timeEnd`. Los
+arreglos se prepararon antes de iniciar el cronómetro y contenían cerca de tres
+ventas por cliente, distribuidas en orden mezclado, como en el generador del
+proyecto. Como la función no está exportada, la medición se hizo en una prueba
+aislada con la misma implementación; no fue necesario modificar el código del
+proyecto. Los tiempos dependen del equipo y de la ejecución.
+
+| Ventas (n) | Tiempo medido |
+|---:|---:|
+| 1.000 | 5,711 ms |
+| 2.000 | 23,788 ms |
+| 4.000 | 98,351 ms |
+| 8.000 | 378,8 ms |
+| 16.000 | 1,187 s |
+| 100.000 | 1 min 27,368 s |
+
+Al duplicar n, los tiempos de 1.000 a 8.000 aumentaron aproximadamente cuatro
+veces (4,16x, 4,14x y 3,85x). Esto concuerda con O(n²): duplicar n produce
+cerca de cuatro veces más pares que revisar. Las diferencias respecto a 4x
+exacto son normales por variaciones del entorno de ejecución.
+
+### Estimación para más ventas
+
+La proyección cuadrática desde 16.000 ventas para 100.000 era de unos 46
+segundos, menor a dos minutos, por lo que se ejecutó esa prueba. El tiempo real
+fue 1 min 27,368 s.
+
+Usando el tiempo medido con 100.000 y suponiendo que se conserva el mismo patrón
+de crecimiento, un millón de ventas (10 veces más datos) tardaría cerca de 100
+veces más: **aproximadamente 2 horas y 26 minutos**. Es una estimación, no una
+medición; depende de los datos y del equipo.
+
+### Costo oculto de `recurrentes.includes`
+
+`includes` también recorre `recurrentes`: puede revisar desde cero hasta todos
+los clientes ya agregados. Si la lista tiene k clientes, una llamada puede
+costar O(k), no O(1). Cuando hay muchos pares que coinciden y la lista ya es
+grande, esa búsqueda se repite dentro de los dos ciclos. En el peor caso, el
+costo adicional puede llegar a O(n³), así que O(n²) describe los pares
+comparados, pero no garantiza por sí solo el peor tiempo total de la función.
+Los tiempos de la tabla corresponden al patrón de datos descrito, no a ese
+peor caso.
+
+### Conclusión para la gerente
+
+El reporte se vuelve lento porque, a medida que hay más ventas, el sistema
+revisa muchas más combinaciones de clientes; además, cada vez puede tardar más
+en comprobar si ya encontró a ese cliente. Por eso, duplicar las ventas puede
+cuadruplicar el trabajo o incluso hacerlo crecer más en casos desfavorables.
+
+## MiniReto 7 · Una ciudad, dos recorridos
+
+### Comprobación con el generador
+
+Se generaron 10.000 ventas con `generarVentas(10000)` y se compararon
+`totalCiudadCadena(ventas, ciudad)` y `totalCiudadUnaPasada(ventas, ciudad)` para
+cada ciudad presente en el arreglo. Ambas versiones devolvieron el mismo total
+en los cuatro casos:
+
+| Ciudad | `totalCiudadCadena` | `totalCiudadUnaPasada` | ¿Coinciden? |
+|---|---:|---:|---|
+| Pereira | 487.327.000 | 487.327.000 | Sí |
+| Medellín | 507.788.000 | 507.788.000 | Sí |
+| Cali | 475.595.000 | 475.595.000 | Sí |
+| Bogotá | 503.411.000 | 503.411.000 | Sí |
+
+Los valores corresponden a una ejecución del generador aleatorio; en otra
+ejecución los totales pueden cambiar. La comprobación de equivalencia se cumplió
+para las cuatro ciudades de la muestra.
+
+### Recorridos, arreglos y complejidad
+
+Sea `n` la cantidad de ventas y `m` la cantidad de ventas de la ciudad buscada
+(`m <= n`).
+
+| Versión | Recorridos de las etapas | Arreglos nuevos | Tiempo | Espacio adicional |
+|---|---|---:|---|---|
+| `totalCiudadCadena` | 4: `map` recorre las n ventas, `filter` vuelve a recorrerlas; luego `map` y `reduce` recorren sus arreglos de m coincidencias | 3: el primer `map`, `filter` y el segundo `map` | O(n) | O(n) |
+| `totalCiudadUnaPasada` | 1 recorrido de las n ventas | 0 | O(n) | O(1) |
+
+El primer `map` de `totalCiudadCadena` también construye un objeto nuevo por cada
+venta con la ciudad normalizada. `filter` conserva las coincidencias en otro
+arreglo; el segundo `map` crea un arreglo de subtotales. `reduce` acumula el
+resultado y no crea un arreglo adicional.
+
+Aunque la versión encadenada tiene cuatro etapas de recorrido, su tiempo es
+proporcional a `n + n + m + m`. Como `m` nunca supera a `n`, esto se puede acotar
+por `4n`. En notación Big O se eliminan las constantes, por eso **ambas
+versiones son O(n) en tiempo**: hacer cuatro recorridos lineales sigue siendo
+lineal, no cuadrático. La diferencia es que la cadena hace más trabajo y
+reserva más memoria, no que cambie su orden de crecimiento temporal.
+
+### Complejidad espacial de las funciones del motor
+
+La clasificación considera la memoria adicional y los resultados que la función
+construye. Se toma `n` como cantidad de ventas; para las agrupaciones, `u` es
+la cantidad de ciudades distintas y `p` la cantidad de productos distintos.
+Como `u <= n` y `p <= n`, ambos pueden ser O(n) en el peor caso.
+
+**Memoria adicional constante, O(1):**
+
+- `valorVenta`, `totalVentas`, `totalVendidoM`, `unidadesVendidas` y
+  `unidadesVendidasM`: calculan un valor/acumulador sin crear arreglos.
+- `ventaMayor`, `ticketPromedio` y `ventaValida`: usan variables de tamaño fijo;
+  `ventaMayor` retorna un objeto de tamaño constante.
+- `normalizarTexto`: trabaja con texto temporal, pero no conserva una colección
+  que crezca con la cantidad de ventas. Se considera O(1) respecto de `n`.
+- `ventasPorCiudad` y `totalCiudadUnaPasada`: recorren y acumulan en variables,
+  sin guardar coincidencias en arreglos.
+- `totalVendidoIntrumentado`, `ventaMayorIntrumentado` y
+  `primeraVentaInstrumentada`: sus contadores y valores auxiliares son de tamaño
+  fijo.
+
+**Memoria adicional proporcional, O(n) en el peor caso:**
+
+- `totalCiudadCadena` y `ventasPorCiudadM`: crean arreglos intermedios; en el
+  peor caso pueden contener las n ventas.
+- `ventasDelDia`: el arreglo de `filter` puede contener hasta n ventas.
+- `totalPorCiudad` y `totalPorCiudadInstrumentado`: guardan una entrada por
+  ciudad distinta; su espacio es O(u), hasta O(n).
+- `unidadesPorProducto`: guarda una entrada por producto distinto; su espacio
+  es O(p), hasta O(n).
+- `topProductosPorValor`: guarda los totales por producto y `Object.entries`
+  crea un arreglo de entradas que se ordena y del que se obtiene una porción.
+  Su espacio es O(p), hasta O(n), aunque se soliciten pocos productos con `k`.
+- `clientesRecurrentes`: su arreglo puede crecer con la cantidad de clientes
+  recurrentes; en el peor caso es O(n).
+
+La versión encadenada crea explícitamente arreglos; `totalPorCiudad` y
+`topProductosPorValor` también usan memoria que crece con las categorías
+distintas. Esas colecciones no son O(1), aunque el número de categorías suela ser
+mucho menor que el número de ventas en los datos actuales.
+
+### Decisión para el motor
+
+Se elige `totalCiudadUnaPasada` como versión recomendada para el motor: entrega
+el mismo resultado, usa O(1) de memoria adicional y hace un solo recorrido.
+`totalCiudadCadena` expresa la transformación de forma encadenada y resulta útil
+para enseñar o comparar métodos, pero reserva tres arreglos y crea objetos
+intermedios. Para un reporte que puede recibir más ventas, se prioriza reducir
+memoria y trabajo sin perder claridad: la versión de una pasada sigue siendo
+corta y directa.
+
