@@ -673,3 +673,27 @@ intermedios. Para un reporte que puede recibir más ventas, se prioriza reducir
 memoria y trabajo sin perder claridad: la versión de una pasada sigue siendo
 corta y directa.
 
+## MiniReto 8 · Informe de rendimiento y revisión
+
+Se creó `RENDIMIENTO.md` con el inventario de las funciones de
+`src/analitica.js`, sus complejidades, mediciones con 10.000 ventas, proyecciones
+a un millón, riesgos y un plan de optimización. Las mediciones se hicieron con
+un conjunto generado, en Node.js v26.13.0, usando la mediana de cinco
+ejecuciones después de calentar cada función. El tiempo de generar los datos se
+excluyó.
+
+Como referencia, el reporte general calculado con esa muestra tomó 26,391 ms;
+su proyección lineal a un millón es aproximadamente 2,64 s, sin contar
+generación ni impresión. `clientesRecurrentes` tomó 581,144 ms con 10.000 ventas
+y presenta el mayor riesgo: `includes` puede buscar repetidamente en la lista de
+clientes recurrentes. El plan propone contar apariciones con un `Map` en un
+recorrido y seleccionar los clientes con más de una aparición; no se implementó
+esa optimización.
+
+### Seguimiento de revisión por un compañero
+
+Quedó redactada en `RENDIMIENTO.md` una solicitud para revisar el inventario,
+las proyecciones y el análisis de riesgo. **La observación y la respuesta están
+pendientes de una revisión real**; no se inventa el comentario de un compañero.
+Cuando se reciba, se añadirá aquí la observación concreta y la respuesta.
+
