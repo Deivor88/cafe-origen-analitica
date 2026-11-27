@@ -280,9 +280,60 @@ function totalCiudadUnaPasada(ventas, ciudad) {
 
     return total;
 }
-//console.log(totalCiudadCadena(ventas,"medellin"));
+//console.log(totalCiudadCadena(ventas,"medellin"))
+function clientesRecurrentesSet(ventas){
+    const recurrentes = new Set()
+    const vistos = new Set()
 
+    if (!Array.isArray(ventas)) {
+        return null;
+    }
+    for (const venta of ventas){
+        const cliente =venta.cliente
+        if(!cliente) continue
 
+        if(vistos.has(cliente)){
+            recurrentes.add(cliente)
+        }else{
+            vistos.add(cliente)
+        }
+    } return [... recurrentes]
+}
+// console.log(clientesRecurrentesSet(ventas))
+// console.log("Clientes recurrentes:", clientesRecurrentesSet(ventas))
+function comprasPorCliente(ventas){
+    const conteo = new Map()
+
+    if(!Array.isArray(ventas)){
+        return{
+            comprasPorCliente: conteo,
+            recurrentes: []
+        }
+    }
+    //Contar cuántas compras hizo cada cliente usando el Map
+    for(const venta of ventas){
+        const cliente = venta.cliente
+        if(!cliente) continue
+
+        const actual = conteo.get(cliente) ?? 0
+        conteo.set(cliente, actual + 1)
+    }
+    //
+    const recurrentes = []
+    for(const [cliente, cantidad] of conteo.entries()){
+        if(cantidad > 1){
+            recurrentes.push(cliente)
+        }
+    }
+    return{
+        comprasPorCliente: conteo,
+        recurrentes
+    }
+}
+// const resultado = comprasPorCliente(ventas);
+//console.log(resultado);
+// console.log("Compras por cliente (Map):", resultado.comprasPorCliente);
+// console.log("Recurrentes:", resultado.recurrentes);
 
 
 
@@ -357,7 +408,10 @@ module.exports = {
     totalVendidoIntrumentado,
     ventaMayorIntrumentado,
     totalPorCiudadInstrumentado,
-    primeraVentaInstrumentada
+    primeraVentaInstrumentada,
+    clientesRecurrentes,
+    clientesRecurrentesSet,
+    comprasPorCliente
 };
 
 

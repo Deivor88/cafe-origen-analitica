@@ -697,3 +697,100 @@ las proyecciones y el análisis de riesgo. **La observación y la respuesta est�
 pendientes de una revisión real**; no se inventa el comentario de un compañero.
 Cuando se reciba, se añadirá aquí la observación concreta y la respuesta.
 
+## MiniReto 9 · Clientes recurrentes para 100.000 ventas
+
+### Entender el problema
+
+El marketplace exige responder en menos de un segundo para 100.000 ventas. La
+función actual `clientesRecurrentes` compara ventas por pares y vuelve a buscar
+clientes en la lista de resultados; esa repetición es el trabajo que se busca
+eliminar.
+
+| Aspecto | Definición |
+|---|---|
+| Entrada | Arreglo `ventas`; cada registro tiene un identificador de cliente válido en `venta.cliente`. En los datos del proyecto es un string como `"C12"`. |
+| Salida | Arreglo de identificadores que aparecen en dos o más ventas, sin duplicados y en orden de primera aparición. |
+| Restricciones | No modificar el arreglo de entrada. Una venta cuenta por registro; tres ventas del mismo cliente producen un solo identificador en la salida. Los identificadores se comparan como valores exactos. |
+| Meta de rendimiento | Menos de 1 s con 100.000 ventas. Es una meta por comprobar con una medición después de implementar; esta sección documenta el diseño, no afirma que ya se cumpla. |
+
+Se asume que los registros tienen `cliente` válido. Si el campo falta o es
+inválido, debe definirse una política de validación explícita: la función actual
+puede tratar dos valores `undefined` como si fueran el mismo cliente.
+
+### Ejemplos y casos borde
+
+| Entrada (solo identificadores) | Salida esperada | Qué verifica |
+|---|---|---|
+| `[]` | `[]` | No hay ventas. |
+| `[A]` | `[]` | Un único registro no es recurrente. |
+| `[A, B, C]` | `[]` | Todos los clientes son distintos. |
+| `[A, A, A]` | `[A]` | Tres ventas siguen produciendo un solo identificador. |
+| `[A, B, A, C, B]` | `[A, B]` | Repeticiones separadas y orden de primera aparición. |
+| `[A, B, C, A]` | `[A]` | Un cliente se repite al final del arreglo. |
+
+### Fuerza bruta y complejidad
+
+La estrategia actual compara cada venta con las que aparecen después:
+
+```
+recurrentes ← []
+PARA i desde 0 hasta n - 1
+  PARA j desde i + 1 hasta n - 1
+    SI ventas[i].cliente = ventas[j].cliente
+       Y recurrentes no contiene ventas[i].cliente
+      agregar ventas[i].cliente a recurrentes
+RETORNAR recurrentes
+```
+
+Solo los pares ya comparados son `n * (n - 1) / 2`, que implica O(n²) tiempo.
+Con 100.000 ventas son **4.999.950.000 comparaciones de pares**, antes de contar
+el costo adicional. Cuando hay coincidencia, `recurrentes.includes` puede
+recorrer hasta r resultados acumulados; por eso el peor caso total puede llegar
+a O(n³). El arreglo de resultados usa O(r), hasta O(n) espacio. Este crecimiento
+no es compatible con la meta del marketplace.
+
+### Idea de optimización
+
+En lugar de comparar cada venta con todas las demás, guardar la cantidad de
+apariciones de cada cliente en un `Map`:
+
+1. Recorrer `ventas` una vez e incrementar el contador asociado a
+   `venta.cliente`.
+2. Recorrer las entradas del mapa y agregar al resultado los clientes cuyo
+   contador sea mayor que uno.
+
+El mapa conserva la información ya calculada: no hay que volver a comparar
+pares ni buscar cada coincidencia en `recurrentes`. Como `Map` conserva el orden
+de inserción, al recorrer sus entradas se mantiene el orden de primera aparición
+de los clientes. Para c clientes distintos, el tiempo esperado es O(n + c), que
+se simplifica a **O(n)**, y el espacio es O(c), hasta O(n).
+
+### Intercambio entre tiempo y memoria
+
+También se implementó `clientesRecurrentesSet`, que usa dos conjuntos:
+`vistos` registra a todos los clientes encontrados una vez y `recurrentes`
+retiene los que aparecen una segunda vez. `comprasPorCliente` usa un `Map` para
+conservar una colección de cliente -> cantidad. Ambas soluciones necesitan más
+memoria que la fuerza bruta, pero eliminan su crecimiento temporal.
+
+| Versión | Tiempo esperado | Memoria adicional | Resultado |
+|---|---|---|---|
+| `clientesRecurrentes` | O(n²) por pares; hasta O(n³) peor caso | O(r), hasta O(n), para recurrentes | Elimina `includes` solo al final de la fuerza bruta |
+| `clientesRecurrentesSet` | O(n) esperado | O(c + r), hasta O(n), para dos conjuntos | Registra repetidos y elimina duplicados |
+| `comprasPorCliente` | O(n) esperado | O(c) para el mapa, más O(r) para el resultado | Además entrega el conteo completo |
+
+El intercambio es explícito: se reserva memoria para evitar volver a revisar
+pares y búsquedas lineales. En el peor caso, las dos soluciones usan hasta
+O(n) memoria si todos los identificadores son distintos o recurrentes. A cambio,
+ambas hacen un recorrido principal lineal y suelen ser mucho más rápidas.
+El coste adicional es aceptable porque la meta exige rapidez con 100.000
+ventas y el tamaño de las colecciones está acotado por la cantidad de clientes
+distintos.
+
+Se verificó que las tres versiones producen los mismos recurrentes para las
+ventas del proyecto y para 5.000 ventas generadas. En ejecuciones con 100.000
+ventas, ambas soluciones optimizadas estuvieron cerca de 10–20 ms; el método
+original se omitió a partir de 10.000 por su crecimiento. Los tiempos son
+orientativos y pueden variar según el equipo, el generador aleatorio y la carga
+del proceso.
+
